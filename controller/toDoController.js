@@ -97,7 +97,28 @@ export const deleteTodo = async (req, res) => {
     }
 }
 
+export const searchTodo= async(req, res)=>{
+    try{
+        const {query}=req.query;
+        console.log("Query : ", query)
+        if(!query){
+           return res.status(400).json({message : "Query must be required"})
+        }
 
+        const todos= await ToDo.find({
+            $or: [
+                {title :  {$regex : query, $options : "i"}},
+                {description :  {$regex : query, $options : "i"}},
+            ]
+        });
 
+        if(todos.length===0){
+            return res.status(404).json({message : "To do not found on this search"});
+        }
 
+        res.status(200).json({message : "Search result ", data : todos})
+    }catch(err){
+        res.status(500).json({error : "Internal server error"});
 
+    }
+}

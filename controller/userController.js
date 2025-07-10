@@ -2,13 +2,10 @@ import User from "../model/userModel.js"; //from the model
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken";
 
-//user register API
+//User registration
 export const userRegistration = async (req, res) => {
     try {
-        const { username, email, password, role } = req.body;  //postman  ....frontend
-        console.log("username", username)
-        console.log("email", email)
-        //status code 
+        const { username, email, password, role } = req.body; 
         if (!username || !email || !password) {
             return res.status(400).json({ message: "Username, email, password must required" });
         }
@@ -35,12 +32,10 @@ export const userRegistration = async (req, res) => {
 }
 
 
-//user login api
+//Login
 export const userLogin = async (req, res) => {
     try {
-        const { email, password } = req.body;  //postman  ....frontend
-
-        //status code 
+        const { email, password } = req.body;
         if (!email || !password) {
             return res.status(400).json({ message: "email, password must required" });
         }
@@ -59,7 +54,7 @@ export const userLogin = async (req, res) => {
 
         const payload = { id: existingUser.id, role: existingUser.role }
         const token = jwt.sign(payload, process.env.JWT_SECRETE, { expiresIn: "1h" });
-
+        
         res.status(200).json({ message: "User login successfull", token, data: existingUser })
 
     } catch (err) {
@@ -80,7 +75,6 @@ export const getAllUsers = async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 }
-
 
 //fetch single users
 export const singleUser = async (req, res) => {
@@ -117,8 +111,7 @@ export const userProfile= async(req, res)=>{
 export const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const {username, password } = req.body;  //postman  ....frontend
-        //status code 
+        const {username, password } = req.body;
         if (!username || !password) {
             return res.status(400).json({ message: "Username and password must required" });
         }
@@ -149,3 +142,19 @@ export const deleteUser = async (req, res) => {
     }
 }
 
+// search the todo
+export const searchTodo= (req, res)=>{
+    try{
+        const {query}=req.query;
+        if(!query){
+           return res.status(400).json({message : "Query must be required"})
+        }
+
+
+
+
+    }catch(err){
+        res.status(500).json({error : "Internal server error"});
+
+    }
+}

@@ -17,9 +17,9 @@ router.route("/singleUser/:id").get(isAuthenticated , singleUser);
 
 
 router.route("/updateUser/:id").patch(isAuthenticated , updateUser);
+
+
 router.route("/delete/:id").delete(isAuthenticated, restrictTo(Role.Admin), deleteUser);
-
-
 
 
 export default router
