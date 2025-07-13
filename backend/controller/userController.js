@@ -16,7 +16,7 @@ export const userRegistration = async (req, res) => {
             return res.status(404).json({ message: "Email is already register!" })
         }
 
-        const hashedPassword = await bcrypt.hash(password, 14); // password hashing
+        const hashedPassword = await bcrypt.hash(password, 14); // password hashing   
         const newUser = await User.create({
             username,
             email,
@@ -138,23 +138,6 @@ export const deleteUser = async (req, res) => {
         res.status(200).json({ message: "User deleted successfully"})
     } catch (err) {
         res.status(500).json({ error: "Internal server error" });
-
-    }
-}
-
-// search the todo
-export const searchTodo= (req, res)=>{
-    try{
-        const {query}=req.query;
-        if(!query){
-           return res.status(400).json({message : "Query must be required"})
-        }
-
-
-
-
-    }catch(err){
-        res.status(500).json({error : "Internal server error"});
 
     }
 }

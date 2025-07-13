@@ -1,20 +1,18 @@
 import ToDo from "../model/todoModel.js";
 
-
-//create todo API
+//create todo
 export const createTodo = async (req, res) => {
     try {
-        const { title, description } = req.body;  //postman  ....frontend
-
-        //status code 
+        const { title, description } = req.body;  
         if (!title || !description) {
             return res.status(400).json({ message: "Title and the description must required" });
         }
+        
         const existingTodo = await ToDo.findOne({ title });
         if (existingTodo) {
             return res.status(404).json({ message: "Title already exist" });
         }
-
+        
         const todo = await ToDo.create({
             title, description
         });
@@ -22,29 +20,33 @@ export const createTodo = async (req, res) => {
 
     } catch (err) {
         res.status(500).json({ error: "Internal server error" });
-
     }
 }
 
 
-//get/read todo
+// get all todo
 export const getTodo = async (req, res) => {
     try {
-        const todo = await ToDo.find();
+        const todo = await ToDo.find().sort({ createdAt: -1 });
         res.status(200).json({ message: "Todo created successfully", data: todo });
     } catch (err) {
         res.status(500).json({ error: "Internal server error" });
     }
 }
 
+//findOne
 
 //fetch single todo
 export const singleTodo = async (req, res) => {
     try {
         const { id } = req.params;
+        if(!id){
+             return res.status(400).json({ message: "Todo not found" });
+        }
+
         const todo = await ToDo.findById(id);
         if(!todo){
-            return res.status(400).json({ message: "Todo not found" });
+            return res.status(404).json({ message: "Todo not found" });
         }
         res.status(200).json({ message: "Single todo fetch successfully", data:todo})
     } catch (err) {
@@ -53,23 +55,25 @@ export const singleTodo = async (req, res) => {
 }
 
 
-//update  API
+//update  todo
 export const updateTodo = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, description } = req.body;  //postman  ....frontend
+        const { title, description } = req.body; 
 
         //status code 
         if (!title || !description) {
             return res.status(400).json({ message: "Title and desc must required" });
         }
 
-        const existingTodo = await ToDo.findOne({ title });
-        if (existingTodo) {
-            return res.status(404).json({ message: "Title already exist" });
-        }
+        // const existingTodo = await ToDo.findOne({ title });
+        // if (existingTodo) {
+        //     return res.status(404).json({ message: "Title already exist" });
+        // }
 
         const todo = await ToDo.findByIdAndUpdate(id, req.body, { new: true });
+        //const todo = await ToDo.findByIdAndUpdate(id, { title, description }, { new: true });
+
 
         res.status(200).json({ message: "Todo updated successfully", data: todo })
 
@@ -88,7 +92,7 @@ export const deleteTodo = async (req, res) => {
         }
         const todo = await ToDo.findByIdAndDelete(id);
         if(!todo){
-            return res.status(400).json({ message: "Todo not found" });
+            return res.status(404).json({ message: "Todo not found" });
         }
         res.status(200).json({ message: "Todo deleted successfully"})
     } catch (err) {
@@ -97,6 +101,7 @@ export const deleteTodo = async (req, res) => {
     }
 }
 
+// search the todo
 export const searchTodo= async(req, res)=>{
     try{
         const {query}=req.query;
@@ -122,3 +127,4 @@ export const searchTodo= async(req, res)=>{
 
     }
 }
+
