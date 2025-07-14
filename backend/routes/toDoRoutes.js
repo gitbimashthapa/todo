@@ -5,12 +5,12 @@ import { isAuthenticated, restrictTo, Role } from "../middleware/authMiddleware.
 const router=Router();
 
 
-router.route("/create").post(isAuthenticated, restrictTo(Role.User), createTodo);
+router.route("/create").post(createTodo);
 
 router.route("/getAll").get( getTodo);
-router.route("/:id").get(isAuthenticated, singleTodo);
-router.route("/update/:id").patch(isAuthenticated, updateTodo);
-router.route("/delete/:id").delete(isAuthenticated, deleteTodo);
+router.route("/:id").get(singleTodo);
+router.route("/update/:id").patch(updateTodo);
+router.route("/delete/:id").delete(deleteTodo);
 
 
 router.route("/all/search"). get( searchTodo);
