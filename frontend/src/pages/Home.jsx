@@ -21,7 +21,9 @@ const Home = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      console.log('Sending todo data:', todoData);
       const response = await axios.post('http://localhost:3000/api/todo/create', todoData);
+      console.log('Create todo response:', response.data);
       setShowSuccess(true);
       setTodoData({ title: '', description: '' });
       fetchTodos();
@@ -29,16 +31,26 @@ const Home = () => {
         setShowSuccess(false);
       }, 2000);
     } catch (err) {
-      alert('Failed to create todo. Please try again.');
+      console.error('Create todo error:', err);
+      if (err.response?.data?.message) {
+        alert(`Error: ${err.response.data.message}`);
+      } else {
+        alert('Failed to create todo. Please try again.');
+      }
     }
   };
 
   const fetchTodos = async () => {
     try {
+      console.log('Fetching todos...');
       const response = await axios.get('http://localhost:3000/api/todo/getAll');
+      console.log('Fetch todos response:', response.data);
       setTodos(response.data.data || []);
     } catch (err) {
       console.error('Failed to fetch todos:', err);
+      if (err.response?.status === 404) {
+        setTodos([]);
+      }
     }
   };
 
@@ -54,7 +66,8 @@ const Home = () => {
       </div>
     )}
     
-    <div className="max-w-md mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-16">
+    <div className="min-h-screen bg-blue-50 py-8">
+      <div className="max-w-md mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8">
       <div className="px-4 py-2">
         <h1 className="text-gray-800 font-bold text-2xl uppercase">To-Do List</h1>
       </div>
@@ -111,6 +124,7 @@ const Home = () => {
         )}
       </ul>
     </div>
+   </div>
    </>
   )
 }

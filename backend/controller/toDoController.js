@@ -4,21 +4,23 @@ import ToDo from "../model/todoModel.js";
 export const createTodo = async (req, res) => {
     try {
         const { title, description } = req.body;  
-        if (!title || !description) {
-            return res.status(400).json({ message: "Title and the description must required" });
+        if (!title) {
+            return res.status(400).json({ message: "Title is required" });
         }
         
         const existingTodo = await ToDo.findOne({ title });
         if (existingTodo) {
-            return res.status(404).json({ message: "Title already exist" });
+            return res.status(409).json({ message: "Title already exists" });
         }
         
         const todo = await ToDo.create({
-            title, description
+            title, 
+            description: description || ''
         });
-        res.status(200).json({ message: "Todo created successfully", data: todo })
+        res.status(201).json({ message: "Todo created successfully", data: todo })
 
     } catch (err) {
+        console.error('Create todo error:', err);
         res.status(500).json({ error: "Internal server error" });
     }
 }
