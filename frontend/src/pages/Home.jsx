@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Home = () => {
+  const navigate = useNavigate();
   const [todoData, setTodoData] = useState({
     title: '',
     description: '',
   });
   const [todos, setTodos] = useState([]);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState({ title: '', description: '' });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -18,114 +21,290 @@ const Home = () => {
     });
   };
 
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditData({
+      ...editData,
+      [name]: value,
+    });
+  };
+
+  const startEdit = (todo) => {
+    setEditingId(todo._id);
+    setEditData({
+      title: todo.title,
+      description: todo.description || ''
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditData({ title: '', description: '' });
+  };
+
+  const saveEdit = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please login to update todos');
+      return;
+    }
+
+    try {
+      await axios.patch(`http://localhost:3000/api/todo/update/${editingId}`, editData, {
+        headers: {
+          Authorization: `${token}`
+        }
+      });
+      setEditingId(null);
+      setEditData({ title: '', description: '' });
+      fetchTodos();
+      alert('Todo updated successfully!');
+    } catch (err) {
+      console.error('Update todo error:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        alert('Session expired. Please login again.');
+        localStorage.removeItem('token');
+        navigate('/login');
+      } else {
+        alert('Failed to update todo.');
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please login to create todos');
+      navigate('/login');
+      return;
+    }
+
     try {
-      console.log('Sending todo data:', todoData);
-      const response = await axios.post('http://localhost:3000/api/todo/create', todoData);
-      console.log('Create todo response:', response.data);
-      setShowSuccess(true);
+      await axios.post('http://localhost:3000/api/todo/create', todoData, {
+        headers: {
+          Authorization: `${token}`
+        }
+      });
       setTodoData({ title: '', description: '' });
       fetchTodos();
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 2000);
     } catch (err) {
       console.error('Create todo error:', err);
-      if (err.response?.data?.message) {
-        alert(`Error: ${err.response.data.message}`);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        alert('Session expired. Please login again.');
+        localStorage.removeItem('token');
+        navigate('/login');
       } else {
         alert('Failed to create todo. Please try again.');
       }
     }
   };
 
-  const fetchTodos = async () => {
+  const handleDelete = async (todoId) => {
+    if (!window.confirm('Are you sure you want to delete this todo?')) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please login to delete todos');
+      return;
+    }
+
     try {
-      console.log('Fetching todos...');
-      const response = await axios.get('http://localhost:3000/api/todo/getAll');
-      console.log('Fetch todos response:', response.data);
+      await axios.delete(`http://localhost:3000/api/todo/delete/${todoId}`, {
+        headers: {
+          Authorization: `${token}`
+        }
+      });
+      fetchTodos();
+    } catch (err) {
+      console.error('Delete todo error:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        alert('Session expired. Please login again.');
+        localStorage.removeItem('token');
+        navigate('/login');
+      } else {
+        alert('Failed to delete todo.');
+      }
+    }
+  };
+
+  const fetchTodos = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setTodos([]);
+      return;
+    }
+
+    try {
+      const response = await axios.get('http://localhost:3000/api/todo/getAll', {
+        headers: {
+          Authorization: `${token}`
+        }
+      });
       setTodos(response.data.data || []);
     } catch (err) {
       console.error('Failed to fetch todos:', err);
-      if (err.response?.status === 404) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        localStorage.removeItem('token');
+        navigate('/login');
+      } else if (err.response?.status === 404) {
         setTodos([]);
       }
     }
   };
 
   useEffect(() => {
-    fetchTodos();
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsLoggedIn(true);
+      fetchTodos();
+    } else {
+      setIsLoggedIn(false);
+      setTodos([]);
+    }
   }, []);
 
   return (
-   <>
-    {showSuccess && (
-      <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
-        Todo created successfully!
-      </div>
-    )}
-    
     <div className="min-h-screen bg-blue-50 py-8">
       <div className="max-w-md mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-8">
-      <div className="px-4 py-2">
-        <h1 className="text-gray-800 font-bold text-2xl uppercase">To-Do List</h1>
-      </div>
-      
-      <form className="w-full max-w-sm mx-auto px-4 py-2" onSubmit={handleSubmit}>
-        <div className="flex flex-col space-y-4">
-          <div className="flex items-center border-b-2 border-teal-500 py-2">
-            <input
-              className="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none"
-              type="text" 
-              placeholder="Add a task title"
-              name="title"
-              value={todoData.title}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          
-          <div className="flex items-center border-b-2 border-teal-500 py-2">
-            <input
-              className="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none"
-              type="text" 
-              placeholder="Add description"
-              name="description"
-              value={todoData.description}
-              onChange={handleChange}
-            />
-          </div>
-          
-          <button
-            className="flex-shrink-0 bg-teal-500 hover:bg-teal-700 border-teal-500 hover:border-teal-700 text-sm border-4 text-white py-2 px-4 rounded w-full"
-            type="submit">
-            Create Todo
-          </button>
+        <div className="px-4 py-2">
+          <h1 className="text-gray-800 font-bold text-2xl uppercase">To-Do List</h1>
         </div>
-      </form>
-      
-      <ul className="divide-y divide-gray-200 px-4">
-        {todos.length > 0 ? (
-          todos.map((todo, index) => (
-            <li key={todo._id || index} className="py-4">
-              <div className="flex items-center">
-                <label className="ml-3 block text-gray-900">
-                  <span className="text-lg font-medium">{todo.title}</span>
-                  <span className="text-sm font-light text-gray-500 block">{todo.description}</span>
-                </label>
+        
+        {isLoggedIn ? (
+          <form className="w-full max-w-sm mx-auto px-4 py-2" onSubmit={handleSubmit}>
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center border-b-2 border-teal-500 py-2">
+                <input
+                  className="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none"
+                  type="text" 
+                  placeholder="Add a task title"
+                  name="title"
+                  value={todoData.title}
+                  onChange={handleChange}
+                  required
+                />
               </div>
-            </li>
-          ))
+              
+              <div className="flex items-center border-b-2 border-teal-500 py-2">
+                <input
+                  className="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none"
+                  type="text" 
+                  placeholder="Add description"
+                  name="description"
+                  value={todoData.description}
+                  onChange={handleChange}
+                />
+              </div>
+              
+              <button
+                className="flex-shrink-0 bg-teal-500 hover:bg-teal-700 border-teal-500 hover:border-teal-700 text-sm border-4 text-white py-2 px-4 rounded w-full"
+                type="submit">
+                Create Todo
+              </button>
+            </div>
+          </form>
         ) : (
-          <li className="py-4">
-            <div className="text-gray-500 text-center">No todos yet. Create one above!</div>
-          </li>
+          <div className="text-center py-8 px-4">
+            <p className="text-gray-600 mb-4">Please login to create and manage your todos</p>
+            <div className="space-x-4">
+              <Link
+                to="/login"
+                className="bg-teal-600 text-white px-4 py-2 rounded-md text-sm hover:bg-teal-700"
+              >
+                Login
+              </Link>
+              <Link
+                to="/register"
+                className="border border-teal-600 text-teal-600 px-4 py-2 rounded-md text-sm hover:bg-teal-50"
+              >
+                Sign Up
+              </Link>
+            </div>
+          </div>
         )}
-      </ul>
+        
+        <ul className="divide-y divide-gray-200 px-4">
+          {isLoggedIn && todos.length > 0 ? (
+            todos.map((todo, index) => (
+              <li key={todo._id || index} className="py-4">
+                {editingId === todo._id ? (
+                  // Edit mode
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      name="title"
+                      value={editData.title}
+                      onChange={handleEditChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      placeholder="Todo title"
+                    />
+                    <input
+                      type="text"
+                      name="description"
+                      value={editData.description}
+                      onChange={handleEditChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      placeholder="Todo description"
+                    />
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={saveEdit}
+                        className="bg-green-500 text-white px-3 py-1 rounded-md text-sm hover:bg-green-600"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="bg-gray-500 text-white px-3 py-1 rounded-md text-sm hover:bg-gray-600"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // View mode
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <span className="text-lg font-medium block text-gray-900">
+                        {todo.title}
+                      </span>
+                      <span className="text-sm block text-gray-500">
+                        {todo.description}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => startEdit(todo)}
+                        className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(todo._id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </li>
+            ))
+          ) : isLoggedIn ? (
+            <li className="py-4">
+              <div className="text-gray-500 text-center">No todos yet. Create one above!</div>
+            </li>
+          ) : (
+            <li className="py-4">
+              <div className="text-gray-500 text-center">Welcome to TodoApp! Please login to see your todos.</div>
+            </li>
+          )}
+        </ul>
+      </div>
     </div>
-   </div>
-   </>
-  )
-}
-export default Home
+  );
+};
+
+export default Home;
