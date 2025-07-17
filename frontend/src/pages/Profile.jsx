@@ -144,6 +144,7 @@ const Profile = () => {
               Edit Profile
             </Link>
             <button
+            
               className="flex-1 rounded-full border-2 border-gray-400 font-semibold text-black px-4 py-2 hover:bg-gray-50">
               Settings
             </button>

@@ -1,76 +1,62 @@
 import axios from 'axios';
 
-// API Handler utility to reduce repetitive try-catch and token handling
+// API Handler utility 
 class ApiHandler {
   static baseURL = 'http://localhost:3000/api';
 
-  // Get token from localStorage
-  static getToken() {
-    return localStorage.getItem('token');
-  }
-
-  // Get headers with authorization
-  static getAuthHeaders() {
-    const token = this.getToken();
-    return token ? { Authorization: token } : {};
-  }
-
-  // Handle common API errors
-  static handleError(error, navigate) {
-    console.error('API Error:', error);
-    
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      alert('Session expired. Please login again.');
-      localStorage.removeItem('token');
-      if (navigate) navigate('/login');
-      return;
+  // axios instance with interceptors
+  static api = axios.create({
+    baseURL: this.baseURL,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     }
-    
-    // Return error message for custom handling
-    return error.response?.data?.message || 'An error occurred. Please try again.';
-  }
+  });
 
-  // Generic API call wrapper
-  static async apiCall(method, endpoint, data = null, navigate = null) {
-    try {
-      const config = {
-        method,
-        url: `${this.baseURL}${endpoint}`,
-        headers: this.getAuthHeaders()
-      };
-
-      if (data) {
-        config.data = data;
+  // Request interceptor to add token automatically
+  static {
+    this.api.interceptors.request.use((config) => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = token;
       }
+      return config;
+    }, (error) => Promise.reject(error));
 
-      const response = await axios(config);
-      return { success: true, data: response.data };
-    } catch (error) {
-      const errorMessage = this.handleError(error, navigate);
-      return { success: false, error: errorMessage };
-    }
+    // Response interceptor for automatic error handling
+    this.api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          alert('Session expired. Please login again.');
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
+    );
   }
 
-  // Specific API methods
-  static async get(endpoint, navigate = null) {
-    return this.apiCall('GET', endpoint, null, navigate);
+  // Utility methods using the interceptor-configured axios instance
+  static async get(endpoint) {
+    return this.api.get(endpoint);
   }
 
-  static async post(endpoint, data, navigate = null) {
-    return this.apiCall('POST', endpoint, data, navigate);
+  static async post(endpoint, data) {
+    return this.api.post(endpoint, data);
   }
 
-  static async patch(endpoint, data, navigate = null) {
-    return this.apiCall('PATCH', endpoint, data, navigate);
+  static async patch(endpoint, data) {
+    return this.api.patch(endpoint, data);
   }
 
-  static async delete(endpoint, navigate = null) {
-    return this.apiCall('DELETE', endpoint, null, navigate);
+  static async delete(endpoint) {
+    return this.api.delete(endpoint);
   }
 
   // Check if user is authenticated
   static isAuthenticated() {
-    return !!this.getToken();
+    return !!localStorage.getItem('token');
   }
 }
 

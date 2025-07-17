@@ -48,15 +48,14 @@ const Home = () => {
       return;
     }
 
-    const result = await ApiHandler.patch(`/todo/update/${editingId}`, editData, navigate);
-    
-    if (result.success) {
+    try {
+      await ApiHandler.patch(`/todo/update/${editingId}`, editData);
       setEditingId(null);
       setEditData({ title: '', description: '' });
       fetchTodos();
       alert('Todo updated successfully!');
-    } else {
-      alert(result.error || 'Failed to update todo.');
+    } catch (error) {
+      alert('Failed to update todo.');
     }
   };
 
@@ -69,14 +68,13 @@ const Home = () => {
       return;
     }
 
-    const result = await ApiHandler.post('/todo/create', todoData, navigate);
-    
-    if (result.success) {
+    try {
+      await ApiHandler.post('/todo/create', todoData);
       setTodoData({ title: '', description: '' });
       fetchTodos();
       alert('Todo created successfully!');
-    } else {
-      alert(result.error || 'Failed to create todo.');
+    } catch (error) {
+      alert('Failed to create todo.');
     }
   };
 
@@ -88,13 +86,12 @@ const Home = () => {
       return;
     }
 
-    const result = await ApiHandler.delete(`/todo/delete/${todoId}`, navigate);
-    
-    if (result.success) {
+    try {
+      await ApiHandler.delete(`/todo/delete/${todoId}`);
       fetchTodos();
       alert('Todo deleted successfully!');
-    } else {
-      alert(result.error || 'Failed to delete todo.');
+    } catch (error) {
+      alert('Failed to delete todo.');
     }
   };
 
@@ -104,11 +101,10 @@ const Home = () => {
       return;
     }
 
-    const result = await ApiHandler.get('/todo/getAll', navigate);
-    
-    if (result.success) {
-      setTodos(result.data.data || []);
-    } else {
+    try {
+      const response = await ApiHandler.get('/todo/getAll');
+      setTodos(response.data.data || []);
+    } catch (error) {
       setTodos([]);
     }
   };

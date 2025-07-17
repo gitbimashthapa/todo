@@ -2,8 +2,8 @@ import React from 'react'
 
 const EditProfile = () => {
   return (
-    <div className='mt-32'>
-        Hello from the edit profile section
+    <div className='mt-50'>
+        Edit your profile!!
     </div>
   )
 }
