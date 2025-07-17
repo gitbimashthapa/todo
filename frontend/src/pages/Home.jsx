@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+import ApiHandler from '../utils/apiHandler';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -43,114 +43,73 @@ const Home = () => {
   };
 
   const saveEdit = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!ApiHandler.isAuthenticated()) {
       alert('Please login to update todos');
       return;
     }
 
-    try {
-      await axios.patch(`http://localhost:3000/api/todo/update/${editingId}`, editData, {
-        headers: {
-          Authorization: `${token}`
-        }
-      });
+    const result = await ApiHandler.patch(`/todo/update/${editingId}`, editData, navigate);
+    
+    if (result.success) {
       setEditingId(null);
       setEditData({ title: '', description: '' });
       fetchTodos();
       alert('Todo updated successfully!');
-    } catch (err) {
-      console.error('Update todo error:', err);
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        alert('Session expired. Please login again.');
-        localStorage.removeItem('token');
-        navigate('/login');
-      } else {
-        alert('Failed to update todo.');
-      }
+    } else {
+      alert(result.error || 'Failed to update todo.');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!ApiHandler.isAuthenticated()) {
       alert('Please login to create todos');
       navigate('/login');
       return;
     }
 
-    try {
-      await axios.post('http://localhost:3000/api/todo/create', todoData, {
-        headers: {
-          Authorization: `${token}`
-        }
-      });
+    const result = await ApiHandler.post('/todo/create', todoData, navigate);
+    
+    if (result.success) {
       setTodoData({ title: '', description: '' });
       fetchTodos();
-    } catch (err) {
-      console.error('Create todo error:', err);
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        alert('Session expired. Please login again.');
-        localStorage.removeItem('token');
-        navigate('/login');
-      } else {
-        alert('Failed to create todo. Please try again.');
-      }
+      alert('Todo created successfully!');
+    } else {
+      alert(result.error || 'Failed to create todo.');
     }
   };
 
   const handleDelete = async (todoId) => {
     if (!window.confirm('Are you sure you want to delete this todo?')) return;
 
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!ApiHandler.isAuthenticated()) {
       alert('Please login to delete todos');
       return;
     }
 
-    try {
-      await axios.delete(`http://localhost:3000/api/todo/delete/${todoId}`, {
-        headers: {
-          Authorization: `${token}`
-        }
-      });
+    const result = await ApiHandler.delete(`/todo/delete/${todoId}`, navigate);
+    
+    if (result.success) {
       fetchTodos();
-    } catch (err) {
-      console.error('Delete todo error:', err);
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        alert('Session expired. Please login again.');
-        localStorage.removeItem('token');
-        navigate('/login');
-      } else {
-        alert('Failed to delete todo.');
-      }
+      alert('Todo deleted successfully!');
+    } else {
+      alert(result.error || 'Failed to delete todo.');
     }
   };
 
   const fetchTodos = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!ApiHandler.isAuthenticated()) {
       setTodos([]);
       return;
     }
 
-    try {
-      const response = await axios.get('http://localhost:3000/api/todo/getAll', {
-        headers: {
-          Authorization: `${token}`
-        }
-      });
-      setTodos(response.data.data || []);
-    } catch (err) {
-      console.error('Failed to fetch todos:', err);
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        localStorage.removeItem('token');
-        navigate('/login');
-      } else if (err.response?.status === 404) {
-        setTodos([]);
-      }
+    const result = await ApiHandler.get('/todo/getAll', navigate);
+    
+    if (result.success) {
+      setTodos(result.data.data || []);
+    } else {
+      setTodos([]);
     }
   };
 
